@@ -611,23 +611,63 @@
 					var stage = this;
 					if(stage.status==1){								//场景正常运行
 						items.forEach(function(item){
-							if(map&&!map.get(item.coord.x,item.coord.y)&&!map.get(player.coord.x,player.coord.y)){
-								var dx = item.x-player.x;
-								var dy = item.y-player.y;
-								if(dx*dx+dy*dy<750&&item.status!=4){		//物体检测
-									if(item.status==3){
-										item.status = 4;
-										_SCORE += 10;
-									}else{
-										stage.status = 3;
-										stage.timeout = 30;
-									}
+					if(map&&!map.get(item.coord.x,item.coord.y)&&!map.get(player.coord.x,player.coord.y)){
+						var dx = item.x-player.x;
+						var dy = item.y-player.y;
+						if(dx*dx+dy*dy<750&&item.status!=4){		//物体检测
+							if(item.status==3){
+								item.status = 4;
+								_SCORE -= 10;
+								// 分裂为多个迷你幽灵
+								for(var i=0; i<3; i++){
+									var miniGhost = stage.createItem({
+										width:15,
+										height:15,
+										orientation:Math.floor(Math.random()*4),
+										color:item.color,
+										location:map,
+										coord:{x:item.coord.x,y:item.coord.y},
+										vector:{x:item.coord.x,y:item.coord.y},
+										type:2,
+										frames:10,
+										speed:2,
+										status:1,
+										update:function(){
+											// 随机方向移动
+											if(!this.coord.offset){
+												this.orientation = Math.floor(Math.random()*4);
+											}
+											this.x += this.speed*_COS[this.orientation];
+											this.y += this.speed*_SIN[this.orientation];
+										},
+										draw:function(context){
+											context.fillStyle = this.color;
+											context.beginPath();
+											context.arc(this.x,this.y,this.width*.5,0,Math.PI,true);
+											context.lineTo(this.x-this.width*.5,this.y+this.height*.4);
+											context.quadraticCurveTo(this.x-this.width*.4,this.y+this.height*.5,this.x-this.width*.2,this.y+this.height*.3);
+											context.quadraticCurveTo(this.x,this.y+this.height*.5,this.x+this.width*.2,this.y+this.height*.3);
+											context.quadraticCurveTo(this.x+this.width*.4,this.y+this.height*.5,this.x+this.width*.5,this.y+this.height*.4);
+											context.closePath();
+											context.fill();
+										}
+									});
+									items.push(miniGhost);
 								}
+							}else{
+								// 碰幽灵加分
+								_SCORE += 5;
 							}
-						});
-						if(JSON.stringify(beans.data).indexOf(0)<0){	//当没有物品的时候，进入下一关
-							game.nextStage();
 						}
+					}
+				});
+						if(JSON.stringify(beans.data).indexOf(0)<0){	//当没有物品的时候，进入下一关
+					if(index == 0){
+						game.setStage(98);
+					}else{
+						game.nextStage();
+					}
+				}
 					}else if(stage.status==3){		//场景临时状态
 						if(!stage.timeout){
 							_LIFE--;
@@ -647,67 +687,35 @@
 				x:60,
 				y:10,
 				data:config['map'],
-				cache:true,
+				cache:false,
 				draw:function(context){
 					context.lineWidth = 2;
+					// 高频率闪烁的红-绿高对比度色系
+					var flashColor = Math.random() > 0.5 ? '#FF0000' : '#00FF00';
+					context.strokeStyle = flashColor;
+					
 					for(var j=0; j<this.y_length; j++){
 						for(var i=0; i<this.x_length; i++){
 							var value = this.get(i,j);
 							if(value){
-								var code = [0,0,0,0];
-								if(this.get(i+1,j)&&!(this.get(i+1,j-1)&&this.get(i+1,j+1)&&this.get(i,j-1)&&this.get(i,j+1))){
-									code[0]=1;
+								var pos = this.coord2position(i,j);
+								
+								// 随机扭曲、断裂的线条
+								context.beginPath();
+								context.moveTo(pos.x + (Math.random() - 0.5) * 10, pos.y + (Math.random() - 0.5) * 10);
+								
+								// 随机绘制不同方向的线条
+								var directions = Math.floor(Math.random() * 4);
+								for(var d=0; d<directions; d++){
+									var angle = Math.random() * Math.PI * 2;
+									var length = this.size * (0.5 + Math.random() * 0.5);
+									var endX = pos.x + Math.cos(angle) * length + (Math.random() - 0.5) * 5;
+									var endY = pos.y + Math.sin(angle) * length + (Math.random() - 0.5) * 5;
+									context.lineTo(endX, endY);
 								}
-								if(this.get(i,j+1)&&!(this.get(i-1,j+1)&&this.get(i+1,j+1)&&this.get(i-1,j)&&this.get(i+1,j))){
-									code[1]=1;
-								}
-								if(this.get(i-1,j)&&!(this.get(i-1,j-1)&&this.get(i-1,j+1)&&this.get(i,j-1)&&this.get(i,j+1))){
-									code[2]=1;
-								}
-								if(this.get(i,j-1)&&!(this.get(i-1,j-1)&&this.get(i+1,j-1)&&this.get(i-1,j)&&this.get(i+1,j))){
-									code[3]=1;
-								}
-								if(code.indexOf(1)>-1){
-									context.strokeStyle=value==2?"#FFF":config['wall_color'];
-									var pos = this.coord2position(i,j);
-									switch(code.join('')){
-										case '1100':
-											context.beginPath();
-											context.arc(pos.x+this.size/2,pos.y+this.size/2,this.size/2,Math.PI,1.5*Math.PI,false);
-											context.stroke();
-											context.closePath();
-											break;
-										case '0110':
-											context.beginPath();
-											context.arc(pos.x-this.size/2,pos.y+this.size/2,this.size/2,1.5*Math.PI,2*Math.PI,false);
-											context.stroke();
-											context.closePath();
-											break;
-										case '0011':
-											context.beginPath();
-											context.arc(pos.x-this.size/2,pos.y-this.size/2,this.size/2,0,.5*Math.PI,false);
-											context.stroke();
-											context.closePath();
-											break;
-										case '1001':
-											context.beginPath();
-											context.arc(pos.x+this.size/2,pos.y-this.size/2,this.size/2,.5*Math.PI,1*Math.PI,false);
-											context.stroke();
-											context.closePath();
-											break;
-										default:
-											var dist = this.size/2;
-											code.forEach(function(v,index){
-												if(v){
-													context.beginPath();
-													context.moveTo(pos.x,pos.y);
-													context.lineTo(pos.x-_COS[index]*dist,pos.y-_SIN[index]*dist);
-													context.stroke();
-													context.closePath();
-												}
-											});
-									}
-								}
+								
+								context.stroke();
+								context.closePath();
 							}
 						}
 					}
@@ -742,23 +750,39 @@
 			stage.createItem({
 				x:690,
 				y:80,
+				frames:1,
+				lastFontChange:0,
+				currentFont:0,
+				fontFamilies:['sans-serif','serif','cursive','fantasy','monospace'],
 				draw:function(context){
-					context.font = 'bold 24px PressStart2P';
+					// 随机瞬移
+					this.x = Math.random() * (game.width - 200) + 100;
+					this.y = Math.random() * (game.height - 200) + 100;
+					
+					// 每秒切换字体样式
+					if(Date.now() - this.lastFontChange > 1000){
+						this.currentFont = Math.floor(Math.random() * this.fontFamilies.length);
+						this.lastFontChange = Date.now();
+					}
+					var randomFontSize = Math.floor(Math.random() * 16) + 16;
+					var randomFontFamily = this.fontFamilies[this.currentFont];
+					
+					context.font = 'bold ' + randomFontSize + 'px ' + randomFontFamily;
 					context.textAlign = 'left';
 					context.textBaseline = 'bottom';
 					context.fillStyle = '#C33';
 					context.fillText('SCORE',this.x,this.y);
-					context.font = '24px PressStart2P';
+					context.font = randomFontSize + 'px ' + randomFontFamily;
 					context.textAlign = 'left';
 					context.textBaseline = 'top';
 					context.fillStyle = '#FFF';
 					context.fillText(_SCORE,this.x+12,this.y+10);
-					context.font = 'bold 24px PressStart2P';
+					context.font = 'bold ' + randomFontSize + 'px ' + randomFontFamily;
 					context.textAlign = 'left';
 					context.textBaseline = 'bottom';
 					context.fillStyle = '#C33';
 					context.fillText('LEVEL',this.x,this.y+72);
-					context.font = '24px PressStart2P';
+					context.font = randomFontSize + 'px ' + randomFontFamily;
 					context.textAlign = 'left';
 					context.textBaseline = 'top';
 					context.fillStyle = '#FFF';
@@ -902,38 +926,45 @@
 							isSick = this.timeout>80||this.times%2?true:false;
 						}
 						if(this.status!=4){
-							context.fillStyle = isSick?'#BABABA':this.color;
+							// 像素级随机变形和颜色变化
+							var randomColor = 'rgba(' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ',' + Math.random() + ')';
+							context.fillStyle = randomColor;
 							context.beginPath();
-							context.arc(this.x,this.y,this.width*.5,0,Math.PI,true);
-							switch(this.times%2){
-								case 0:
+							// 随机形状变化
+							var randomRadius = this.width*.5 + (Math.random() - 0.5) * 10;
+							context.arc(this.x,this.y, randomRadius, 0, Math.PI, true);
+							// 随机底部形状
+							var randomBottom = Math.random();
+							if(randomBottom < 0.33){
 								context.lineTo(this.x-this.width*.5,this.y+this.height*.4);
 								context.quadraticCurveTo(this.x-this.width*.4,this.y+this.height*.5,this.x-this.width*.2,this.y+this.height*.3);
 								context.quadraticCurveTo(this.x,this.y+this.height*.5,this.x+this.width*.2,this.y+this.height*.3);
 								context.quadraticCurveTo(this.x+this.width*.4,this.y+this.height*.5,this.x+this.width*.5,this.y+this.height*.4);
-								break;
-								case 1:
+							}else if(randomBottom < 0.66){
 								context.lineTo(this.x-this.width*.5,this.y+this.height*.3);
-								context.quadraticCurveTo(this.x-this.width*.25,this.y+this.height*.5,this.x,this.y+this.height*.3);
-								context.quadraticCurveTo(this.x+this.width*.25,this.y+this.height*.5,this.x+this.width*.5,this.y+this.height*.3);
-								break;
+								context.quadraticCurveTo(this.x-this.width*.3,this.y+this.height*.6,this.x,this.y+this.height*.4);
+								context.quadraticCurveTo(this.x+this.width*.3,this.y+this.height*.6,this.x+this.width*.5,this.y+this.height*.3);
+							}else{
+								context.lineTo(this.x-this.width*.5,this.y+this.height*.5);
+								context.lineTo(this.x,this.y+this.height*.3);
+								context.lineTo(this.x+this.width*.5,this.y+this.height*.5);
 							}
-							context.fill();
 							context.closePath();
-						}
-						context.fillStyle = '#FFF';
-						if(isSick){
-							context.beginPath();
-							context.arc(this.x-this.width*.15,this.y-this.height*.21,this.width*.08,0,2*Math.PI,false);
-							context.arc(this.x+this.width*.15,this.y-this.height*.21,this.width*.08,0,2*Math.PI,false);
 							context.fill();
-							context.closePath();
-						}else{
-							context.beginPath();
-							context.arc(this.x-this.width*.15,this.y-this.height*.21,this.width*.12,0,2*Math.PI,false);
-							context.arc(this.x+this.width*.15,this.y-this.height*.21,this.width*.12,0,2*Math.PI,false);
-							context.fill();
-							context.closePath();
+							context.fillStyle = '#FFF';
+							if(isSick){
+								context.beginPath();
+								context.arc(this.x-this.width*.15,this.y-this.height*.21,this.width*.08,0,2*Math.PI,false);
+								context.arc(this.x+this.width*.15,this.y-this.height*.21,this.width*.08,0,2*Math.PI,false);
+								context.fill();
+								context.closePath();
+							}else{
+								context.beginPath();
+								context.arc(this.x-this.width*.15,this.y-this.height*.21,this.width*.12,0,2*Math.PI,false);
+								context.arc(this.x+this.width*.15,this.y-this.height*.21,this.width*.12,0,2*Math.PI,false);
+								context.fill();
+								context.closePath();
+							}
 							context.fillStyle = '#000';
 							context.beginPath();
 							context.arc(this.x-this.width*(.15-.04*_COS[this.orientation]),this.y-this.height*(.21-.04*_SIN[this.orientation]),this.width*.07,0,2*Math.PI,false);
@@ -974,7 +1005,7 @@
 						}
 					}else{
 						if(!beans.get(this.coord.x,this.coord.y)){	//吃豆
-							_SCORE++;
+							_SCORE--;
 							beans.set(this.coord.x,this.coord.y,1);
 							if(config['goods'][this.coord.x+','+this.coord.y]){	//吃到能量豆
 								items.forEach(function(item){
@@ -990,17 +1021,21 @@
 					}
 				},
 				draw:function(context){
-					context.fillStyle = '#FFE600';
+					// 像素级随机变形和颜色变化
+					var randomColor = 'rgba(' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ',' + Math.random() + ')';
+					context.fillStyle = randomColor;
+					
 					context.beginPath();
 					if(stage.status!=3){	//玩家正常状态
-						if(this.times%2){
-							context.arc(this.x,this.y,this.width/2,(.5*this.orientation+.20)*Math.PI,(.5*this.orientation-.20)*Math.PI,false);
-						}else{
-							context.arc(this.x,this.y,this.width/2,(.5*this.orientation+.01)*Math.PI,(.5*this.orientation-.01)*Math.PI,false);
-						}
+						// 随机形状变化
+						var randomRadius = this.width/2 + (Math.random() - 0.5) * 10;
+						var randomStartAngle = (.5*this.orientation + (Math.random() - 0.5) * 0.5) * Math.PI;
+						var randomEndAngle = (.5*this.orientation - (Math.random() - 0.5) * 0.5) * Math.PI;
+						context.arc(this.x,this.y, randomRadius, randomStartAngle, randomEndAngle, false);
 					}else{	//玩家被吃
 						if(stage.timeout) {
-							context.arc(this.x,this.y,this.width/2,(.5*this.orientation+1-.02*stage.timeout)*Math.PI,(.5*this.orientation-1+.02*stage.timeout)*Math.PI,false);
+							var randomRadius = this.width/2 + (Math.random() - 0.5) * 15;
+							context.arc(this.x,this.y, randomRadius, (.5*this.orientation+1-.02*stage.timeout)*Math.PI, (.5*this.orientation-1+.02*stage.timeout)*Math.PI, false);
 						}
 					}
 					context.lineTo(this.x,this.y);
@@ -1043,7 +1078,6 @@
 				context.font = 'bold 48px PressStart2P';
 				context.textAlign = 'center';
 				context.textBaseline = 'middle';
-				context.fillText(_LIFE?'YOU WIN!':'GAME OVER',this.x,this.y);
 			}
 		});
 		//记分
