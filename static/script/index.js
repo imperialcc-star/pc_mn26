@@ -515,36 +515,170 @@
 			}
 		}
 	];
-	_COLOR = ['#F00','#F93','#0CF','#F9C'],	//NPC颜色
+	_COLOR = ['#F56BA8','#FFB347','#5CC8FF','#C68CFF'],	//NPC颜色
 	_COS = [1,0,-1,0],
 	_SIN = [0,1,0,-1],
 	_LIFE = 5,				//玩家生命值
 	_SCORE = 0;				//玩家得分
+	var _LEVEL = 1;
+	var _DIFFICULTY = 1;
+	var _AUTO_PILOT = true;
 
-	var game = new Game('canvas');
+	var updateDifficulty = function(){
+		_DIFFICULTY = 1 + Math.min(1.6, (_LEVEL-1) * 0.04);
+	};
+
+	var buildAvoidMap = function(map, items){
+		var data = JSON.parse(JSON.stringify(map.data).replace(/2/g,0));
+		items.forEach(function(item){
+			if(item.status!==4){
+				data[item.coord.y][item.coord.x] = 1;
+			}
+		});
+		return data;
+	};
+
+	var findAutoDirection = function(map, beans, player, items){
+		var xLen = map.x_length;
+		var yLen = map.y_length;
+		var queue = [];
+		var visited = Array(yLen).fill(0).map(()=>Array(xLen).fill(false));
+		var parents = Array(yLen).fill(0).map(()=>Array(xLen).fill(null));
+		var blockedMap = buildAvoidMap(map, items);
+		var start = {x:player.coord.x, y:player.coord.y};
+		queue.push(start);
+		visited[start.y][start.x] = true;
+		while(queue.length){
+			var current = queue.shift();
+			if(!(current.x===start.x && current.y===start.y) && !beans.get(current.x,current.y)){
+				var back = current;
+				while(parents[back.y][back.x] && !(parents[back.y][back.x].x===start.x && parents[back.y][back.x].y===start.y)){
+					back = parents[back.y][back.x];
+				}
+				var dx = back.x - start.x;
+				var dy = back.y - start.y;
+				if(dx>1){ dx = -1; }
+				if(dx<-1){ dx = 1; }
+				if(dy>1){ dy = -1; }
+				if(dy<-1){ dy = 1; }
+				if(dx===1){ return 0; }
+				if(dy===1){ return 1; }
+				if(dx===-1){ return 2; }
+				if(dy===-1){ return 3; }
+				return null;
+			}
+			for(var i=0;i<4;i++){
+				var nx = current.x + _COS[i];
+				var ny = current.y + _SIN[i];
+				if(nx<0 || ny<0 || nx>=xLen || ny>=yLen){
+					nx = (nx + xLen) % xLen;
+					ny = (ny + yLen) % yLen;
+				}
+				if(visited[ny][nx]){
+					continue;
+				}
+				if(blockedMap[ny][nx]){
+					continue;
+				}
+				visited[ny][nx] = true;
+				parents[ny][nx] = current;
+				queue.push({x:nx, y:ny});
+			}
+		}
+		return null;
+	};
+
+	var drawRobloxCharacter = function(context, options){
+		var x = options.x;
+		var y = options.y;
+		var width = options.width;
+		var height = options.height;
+		var bodyColor = options.bodyColor;
+		var dressColor = options.dressColor;
+		var hairColor = options.hairColor;
+		var isScared = options.isScared;
+		var isFaint = options.isFaint;
+		var headSize = height * 0.34;
+		var bodyHeight = height * 0.32;
+		var legHeight = height * 0.22;
+		var bodyWidth = width * 0.62;
+		var dressWidth = width * 0.74;
+		var top = y - height * 0.5;
+		var centerX = x;
+
+		context.save();
+		context.globalAlpha = isFaint ? 0.55 : 1;
+		context.fillStyle = bodyColor;
+		context.fillRect(centerX - headSize * 0.5, top, headSize, headSize);
+		context.fillStyle = hairColor;
+		context.fillRect(centerX - headSize * 0.5, top - headSize * 0.08, headSize, headSize * 0.45);
+		context.beginPath();
+		context.moveTo(centerX - headSize * 0.1, top - headSize * 0.1);
+		context.lineTo(centerX - headSize * 0.35, top - headSize * 0.3);
+		context.lineTo(centerX - headSize * 0.05, top - headSize * 0.32);
+		context.closePath();
+		context.fill();
+		context.beginPath();
+		context.moveTo(centerX + headSize * 0.1, top - headSize * 0.1);
+		context.lineTo(centerX + headSize * 0.35, top - headSize * 0.3);
+		context.lineTo(centerX + headSize * 0.05, top - headSize * 0.32);
+		context.closePath();
+		context.fill();
+		context.fillStyle = '#2b2b3f';
+		context.beginPath();
+		context.arc(centerX - headSize * 0.15, top + headSize * 0.55, headSize * 0.08, 0, 2*Math.PI, false);
+		context.arc(centerX + headSize * 0.15, top + headSize * 0.55, headSize * 0.08, 0, 2*Math.PI, false);
+		context.fill();
+
+		context.fillStyle = dressColor;
+		context.fillRect(centerX - bodyWidth * 0.5, top + headSize, bodyWidth, bodyHeight);
+		context.fillStyle = isScared ? '#C7C7D9' : dressColor;
+		context.beginPath();
+		context.moveTo(centerX - dressWidth * 0.5, top + headSize + bodyHeight);
+		context.lineTo(centerX + dressWidth * 0.5, top + headSize + bodyHeight);
+		context.lineTo(centerX + dressWidth * 0.3, top + headSize + bodyHeight + legHeight);
+		context.lineTo(centerX - dressWidth * 0.3, top + headSize + bodyHeight + legHeight);
+		context.closePath();
+		context.fill();
+		context.fillStyle = '#4c4c6f';
+		context.fillRect(centerX - dressWidth * 0.25, top + headSize + bodyHeight + legHeight, dressWidth * 0.18, legHeight * 0.4);
+		context.fillRect(centerX + dressWidth * 0.07, top + headSize + bodyHeight + legHeight, dressWidth * 0.18, legHeight * 0.4);
+		context.restore();
+	};
+
+	var advanceLevel = function(currentIndex){
+		_LEVEL++;
+		updateDifficulty();
+		var nextIndex = currentIndex + 1;
+		if(nextIndex >= _COIGIG.length){
+			nextIndex = 0;
+		}
+		game.setStage(nextIndex + 1);
+	};
+
+	var game = new Game('canvas',{width:1080,height:720});
 	//启动页
 	(function(){
 		var stage = game.createStage();
 		//logo
 		stage.createItem({
 			x:game.width/2,
-			y:game.height*.35,
-			width:100,
-			height:100,
+			y:game.height*.33,
+			width:120,
+			height:120,
 			frames:3,
 			draw:function(context){
-				var t = Math.abs(5-this.times%10);
-				context.fillStyle = '#FFE600';
-				context.beginPath();
-				context.arc(this.x,this.y,this.width/2,t*.04*Math.PI,(2-t*.04)*Math.PI,false);
-				context.lineTo(this.x,this.y);
-				context.closePath();
-				context.fill();
-				context.fillStyle = '#000';
-				context.beginPath();
-				context.arc(this.x+5,this.y-27,7,0,2*Math.PI,false);
-				context.closePath();
-				context.fill();
+				drawRobloxCharacter(context,{
+					x:this.x,
+					y:this.y,
+					width:this.width,
+					height:this.height,
+					bodyColor:'#FFD7C2',
+					dressColor:'#FF75B5',
+					hairColor:'#6B3FA0',
+					isScared:false,
+					isFaint:false
+				});
 			}
 		});
 		// 游戏名
@@ -556,7 +690,7 @@
 				context.textAlign = 'center';
 				context.textBaseline = 'middle';
 				context.fillStyle = '#FFF';
-				context.fillText('Pac-Man',this.x,this.y);
+				context.fillText('Pac-Man Autoplay',this.x,this.y);
 			}
 		});
 		// 提示
@@ -570,33 +704,17 @@
 					context.textAlign = 'center';
 					context.textBaseline = 'middle';
 					context.fillStyle = '#AAA';
-					context.fillText('Press Enter to start',this.x,this.y);
+					context.fillText('Press Enter to start (Auto-Pilot ON)',this.x,this.y);
 				}
 			}
-		});
-		//版权信息
-		stage.createItem({
-			x:game.width-10,
-			y:game.height-5,
-			draw:function(context){
-				var text = '© passer-by.com';
-				context.font = '12px/20px PressStart2P';
-				context.textAlign = 'left';
-				context.textBaseline = 'top';
-				context.fillStyle = '#AAA';
-				this.width = context.measureText(text).width;
-				this.x = game.width-this.width-10;
-				this.y = game.height-20-5;
-				context.fillText(text,this.x,this.y);
-			}
-		}).bind('click',function(){
-			window.open('https://passer-by.com');
 		});
 		//事件绑定
 		stage.bind('keydown',function(e){
 			switch(e.keyCode){
 				case 13:
 				case 32:
+				_LEVEL = 1;
+				updateDifficulty();
 				game.nextStage();
 				break;
 			}
@@ -609,6 +727,16 @@
 			stage = game.createStage({
 				update:function(){
 					var stage = this;
+					if(!stage._difficultyApplied){
+						stage._difficultyApplied = true;
+						var playerBoost = 1 + (_DIFFICULTY-1) * 0.25;
+						var npcBoost = 1 + (_DIFFICULTY-1) * 0.6;
+						player.speed = player.baseSpeed * playerBoost;
+						items.forEach(function(item){
+							item.speed = item.baseSpeed * npcBoost;
+						});
+						stage.powerUpTimeout = Math.max(220, 450 - Math.floor((_DIFFICULTY-1) * 140));
+					}
 					if(stage.status==1){								//场景正常运行
 						items.forEach(function(item){
 							if(map&&!map.get(item.coord.x,item.coord.y)&&!map.get(player.coord.x,player.coord.y)){
@@ -626,7 +754,7 @@
 							}
 						});
 						if(JSON.stringify(beans.data).indexOf(0)<0){	//当没有物品的时候，进入下一关
-							game.nextStage();
+							advanceLevel(index);
 						}
 					}else if(stage.status==3){		//场景临时状态
 						if(!stage.timeout){
@@ -644,8 +772,8 @@
 			});
 			//绘制地图
 			map = stage.createMap({
-				x:60,
-				y:10,
+				x:80,
+				y:20,
 				data:config['map'],
 				cache:true,
 				draw:function(context){
@@ -715,8 +843,8 @@
 			});
 			//物品地图
 			beans = stage.createMap({
-				x:60,
-				y:10,
+				x:80,
+				y:20,
 				data:config['map'],
 				frames:8,
 				draw:function(context){
@@ -724,7 +852,7 @@
 						for(var i=0; i<this.x_length; i++){
 							if(!this.get(i,j)){
 								var pos = this.coord2position(i,j);
-								context.fillStyle = "#F5F5DC";
+								context.fillStyle = "#FFE9A6";
 								if(config['goods'][i+','+j]){
 									context.beginPath();
 									context.arc(pos.x,pos.y,3+this.times%2,0,2*Math.PI,true);
@@ -740,8 +868,8 @@
 			});
 			//关卡得分
 			stage.createItem({
-				x:690,
-				y:80,
+				x:720,
+				y:90,
 				draw:function(context){
 					context.font = 'bold 24px PressStart2P';
 					context.textAlign = 'left';
@@ -762,13 +890,13 @@
 					context.textAlign = 'left';
 					context.textBaseline = 'top';
 					context.fillStyle = '#FFF';
-					context.fillText(index+1,this.x+12,this.y+82);
+					context.fillText(_LEVEL,this.x+12,this.y+82);
 				}
 			});
 			//状态文字
 			stage.createItem({
-				x:690,
-				y:285,
+				x:720,
+				y:295,
 				frames:25,
 				draw:function(context){
 					if(stage.status==2&&this.times%2){
@@ -782,8 +910,8 @@
 			});
 			//生命值
 			stage.createItem({
-				x:705,
-				y:510,
+				x:735,
+				y:540,
 				width:30,
 				height:30,
 				draw:function(context){
@@ -818,6 +946,7 @@
 					vector:{x:12+i,y:14},
 					type:2,
 					frames:10,
+					baseSpeed:1,
 					speed:1,
 					timeout:Math.floor(Math.random()*120),
 					update:function(){
@@ -902,44 +1031,29 @@
 							isSick = this.timeout>80||this.times%2?true:false;
 						}
 						if(this.status!=4){
-							context.fillStyle = isSick?'#BABABA':this.color;
-							context.beginPath();
-							context.arc(this.x,this.y,this.width*.5,0,Math.PI,true);
-							switch(this.times%2){
-								case 0:
-								context.lineTo(this.x-this.width*.5,this.y+this.height*.4);
-								context.quadraticCurveTo(this.x-this.width*.4,this.y+this.height*.5,this.x-this.width*.2,this.y+this.height*.3);
-								context.quadraticCurveTo(this.x,this.y+this.height*.5,this.x+this.width*.2,this.y+this.height*.3);
-								context.quadraticCurveTo(this.x+this.width*.4,this.y+this.height*.5,this.x+this.width*.5,this.y+this.height*.4);
-								break;
-								case 1:
-								context.lineTo(this.x-this.width*.5,this.y+this.height*.3);
-								context.quadraticCurveTo(this.x-this.width*.25,this.y+this.height*.5,this.x,this.y+this.height*.3);
-								context.quadraticCurveTo(this.x+this.width*.25,this.y+this.height*.5,this.x+this.width*.5,this.y+this.height*.3);
-								break;
-							}
-							context.fill();
-							context.closePath();
-						}
-						context.fillStyle = '#FFF';
-						if(isSick){
-							context.beginPath();
-							context.arc(this.x-this.width*.15,this.y-this.height*.21,this.width*.08,0,2*Math.PI,false);
-							context.arc(this.x+this.width*.15,this.y-this.height*.21,this.width*.08,0,2*Math.PI,false);
-							context.fill();
-							context.closePath();
+							drawRobloxCharacter(context,{
+								x:this.x,
+								y:this.y,
+								width:this.width,
+								height:this.height,
+								bodyColor:isSick ? '#DDD7E3' : '#FFD7C2',
+								dressColor:isSick ? '#C7C7D9' : this.color,
+								hairColor:isSick ? '#9D9AA6' : '#4A3A8A',
+								isScared:isSick,
+								isFaint:false
+							});
 						}else{
-							context.beginPath();
-							context.arc(this.x-this.width*.15,this.y-this.height*.21,this.width*.12,0,2*Math.PI,false);
-							context.arc(this.x+this.width*.15,this.y-this.height*.21,this.width*.12,0,2*Math.PI,false);
-							context.fill();
-							context.closePath();
-							context.fillStyle = '#000';
-							context.beginPath();
-							context.arc(this.x-this.width*(.15-.04*_COS[this.orientation]),this.y-this.height*(.21-.04*_SIN[this.orientation]),this.width*.07,0,2*Math.PI,false);
-							context.arc(this.x+this.width*(.15+.04*_COS[this.orientation]),this.y-this.height*(.21-.04*_SIN[this.orientation]),this.width*.07,0,2*Math.PI,false);
-							context.fill();
-							context.closePath();
+							drawRobloxCharacter(context,{
+								x:this.x,
+								y:this.y,
+								width:this.width,
+								height:this.height,
+								bodyColor:'#DDD7E3',
+								dressColor:'#C7C7D9',
+								hairColor:'#9D9AA6',
+								isScared:true,
+								isFaint:true
+							});
 						}
 					}
 				});
@@ -953,11 +1067,18 @@
 				location:map,
 				coord:{x:13.5,y:23},
 				orientation:2,
+				baseSpeed:2,
 				speed:2,
 				frames:10,
 				update:function(){
 					var coord = this.coord;
 					if(!coord.offset){
+						if(_AUTO_PILOT && stage.status==1){
+							var autoDirection = findAutoDirection(map, beans, this, items);
+							if(autoDirection!==null){
+								this.control = {orientation:autoDirection};
+							}
+						}
 						if(typeof this.control.orientation != 'undefined'){
 							if(!map.get(coord.x+_COS[this.control.orientation],coord.y+_SIN[this.control.orientation])){
 								this.orientation = this.control.orientation;
@@ -979,7 +1100,7 @@
 							if(config['goods'][this.coord.x+','+this.coord.y]){	//吃到能量豆
 								items.forEach(function(item){
 									if(item.status==1||item.status==3){	//如果NPC为正常状态，则置为临时状态
-										item.timeout = 450;
+										item.timeout = stage.powerUpTimeout || 450;
 										item.status = 3;
 									}
 								});
@@ -990,22 +1111,17 @@
 					}
 				},
 				draw:function(context){
-					context.fillStyle = '#FFE600';
-					context.beginPath();
-					if(stage.status!=3){	//玩家正常状态
-						if(this.times%2){
-							context.arc(this.x,this.y,this.width/2,(.5*this.orientation+.20)*Math.PI,(.5*this.orientation-.20)*Math.PI,false);
-						}else{
-							context.arc(this.x,this.y,this.width/2,(.5*this.orientation+.01)*Math.PI,(.5*this.orientation-.01)*Math.PI,false);
-						}
-					}else{	//玩家被吃
-						if(stage.timeout) {
-							context.arc(this.x,this.y,this.width/2,(.5*this.orientation+1-.02*stage.timeout)*Math.PI,(.5*this.orientation-1+.02*stage.timeout)*Math.PI,false);
-						}
-					}
-					context.lineTo(this.x,this.y);
-					context.closePath();
-					context.fill();
+					drawRobloxCharacter(context,{
+						x:this.x,
+						y:this.y,
+						width:this.width,
+						height:this.height,
+						bodyColor:'#FFD7C2',
+						dressColor:'#FF75B5',
+						hairColor:'#6B3FA0',
+						isScared:false,
+						isFaint:stage.status==3
+					});
 				}
 			});
 			//事件绑定
@@ -1065,6 +1181,8 @@
 				case 32: //空格
 				_SCORE = 0;
 				_LIFE = 5;
+				_LEVEL = 1;
+				updateDifficulty();
 				game.setStage(1);
 				break;
 			}
