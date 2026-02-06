@@ -1,120 +1,66 @@
-.mod-panel{
-    margin-bottom: 30px;
+* {
+    box-sizing: border-box;
 }
-.mod-panel canvas{
-    display:block;
+
+body {
+    margin: 0;
+    font-family: "PressStart2P", system-ui, -apple-system, sans-serif;
+    background: radial-gradient(circle at top, #ffe7f3, #b9e7ff 40%, #c4f5d6 70%, #f7d3ff 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.game-shell {
+    width: min(1100px, 100%);
+    display: grid;
+    gap: 16px;
+    justify-items: center;
+}
+
+.game-board {
+    padding: 12px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.25));
+    box-shadow: 0 24px 50px rgba(64, 80, 120, 0.25);
+    backdrop-filter: blur(8px);
+
+}
+
+.game-board canvas {
+    display: block;
     margin: 0 auto;
-    background: #000;
-    border-radius: 12px;
+    background: #090a1a;
+    border-radius: 14px;
+    max-width: 100%;
+    height: auto;
 }
-.mod-panel .info{
-    padding: 10px 0;
-    margin-bottom: 5px;
-    line-height: 20px;
+
+.info {
     text-align: center;
-    color: #666;
-}
-.mod-panel .info p{
-    line-height: 26px;
-    font-size: 16px;
-    color: #666;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.75);
+    color: #304065;
+    font-size: 14px;
+    line-height: 22px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-.mod-introtion .hd{
-    margin-bottom: 10px;
-    padding: 15px 20px;
-    background: linear-gradient(45deg, #eef2f9, transparent);
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
+.info p {
+    margin: 0;
 }
-.mod-introtion .hd .title{
-    line-height: 32px;
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--primary-color);
-    text-shadow: 2px 1px 0 #cccccc;
-}
-.mod-introtion .hd .title a{
-    color: var(--primary-color);
-}
-.mod-introtion .hd .subtitle{
-    position: relative;
+
+@media screen and (max-width: 900px) {
+    body {
+        padding: 16px;
+    }
+
+.info {
+    font-size: 12px;
     line-height: 20px;
-    font-size: 20px;
-    font-weight: bold;
-    color: var(--text-color);
-    opacity: 0.8;
-}
-.mod-introtion .bd{
-    padding: 15px 20px;
-    background-color: rgba(0, 0, 0, 0.02);
-    border: 1px solid rgba(0, 0, 0, 0.02);
-    border-radius: 8px;
-}
-.mod-introtion .bd p{
-    margin-bottom: 12px;
-    line-height: 26px;
-    text-indent: 2em;
-    font-size: 16px;
-    color: #666;
-}
-.mod-introtion .bd p:last-child{
-    margin-bottom: 0;
-}
-
-.mod-button{
-    height: 32px;
-    padding: 15px 0;
-    margin-bottom: 15px;
-    text-align: center;
-}
-.mod-button span,.mod-button a{
-    display: inline-block;
-    height: 28px;
-    vertical-align: middle;
-}
-.mod-button .btn{
-    display: inline-block;
-    height: 26px;
-    padding: 0 12px;
-    line-height: 26px;
-    background-color: #ebf0f4;
-    border: 1px solid #d1d9e0;
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 13px;
-    color: #25292e;
-    border-radius: 3px;
-}
-.mod-button .btn:hover{
-    background: #f5f6f7;
-}
-
-
-@media screen and (max-width: 800px){
-    .mod-panel canvas{
-        width: 100%;
-        border-radius: 8px;
-    }
-
-    .mod-panel .info p{
-        line-height: 20px;
-        font-size: 14px;
-    }
-
-    .mod-introtion .hd{
-        padding: 12px 15px;
-    }
-    .mod-introtion .hd .title{
-        line-height: 24px;
-        font-size: 20px;
-    }
-    .mod-introtion .hd .subtitle{
-        line-height: 18px;
-        font-size: 16px;
-    }
-    .mod-introtion .bd p{
-        line-height: 24px;
-        font-size: 15px;
     }
 }
