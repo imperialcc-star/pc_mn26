@@ -846,7 +846,7 @@
 			//物品地图
 			beans = stage.createMap({
 				x:80,
-				y:20
+				y:20,
 				data:config['map'],
 				frames:8,
 				draw:function(context){
@@ -1032,7 +1032,7 @@
 						if(this.status==3){
 							isSick = this.timeout>80||this.times%2?true:false;
 						}
-						if(this.status!-4){
+						if(this.status!=4){
 							drawRobloxCharacter(context,{
 								x:this.x,
 								y:this.y,
