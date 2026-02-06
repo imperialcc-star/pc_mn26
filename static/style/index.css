@@ -26,6 +26,7 @@ body {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.25));
     box-shadow: 0 24px 50px rgba(64, 80, 120, 0.25);
     backdrop-filter: blur(8px);
+
 }
 
 .game-board canvas {
@@ -58,8 +59,8 @@ body {
         padding: 16px;
     }
 
-    .info {
-        font-size: 12px;
-        line-height: 20px;
+.info {
+    font-size: 12px;
+    line-height: 20px;
     }
 }

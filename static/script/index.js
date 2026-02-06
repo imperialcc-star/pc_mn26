@@ -657,6 +657,7 @@
 	};
 
 	var game = new Game('canvas',{width:1080,height:720});
+
 	//启动页
 	(function(){
 		var stage = game.createStage();
@@ -708,6 +709,7 @@
 				}
 			}
 		});
+
 		//事件绑定
 		stage.bind('keydown',function(e){
 			switch(e.keyCode){
@@ -727,7 +729,7 @@
 			stage = game.createStage({
 				update:function(){
 					var stage = this;
-					if(!stage._difficultyApplied){
+						if(!stage._difficultyApplied){
 						stage._difficultyApplied = true;
 						var playerBoost = 1 + (_DIFFICULTY-1) * 0.25;
 						var npcBoost = 1 + (_DIFFICULTY-1) * 0.6;
@@ -844,7 +846,7 @@
 			//物品地图
 			beans = stage.createMap({
 				x:80,
-				y:20,
+				y:20
 				data:config['map'],
 				frames:8,
 				draw:function(context){
@@ -1030,7 +1032,7 @@
 						if(this.status==3){
 							isSick = this.timeout>80||this.times%2?true:false;
 						}
-						if(this.status!=4){
+						if(this.status!-4){
 							drawRobloxCharacter(context,{
 								x:this.x,
 								y:this.y,
@@ -1042,7 +1044,9 @@
 								isScared:isSick,
 								isFaint:false
 							});
+
 						}else{
+
 							drawRobloxCharacter(context,{
 								x:this.x,
 								y:this.y,
@@ -1073,7 +1077,7 @@
 				update:function(){
 					var coord = this.coord;
 					if(!coord.offset){
-						if(_AUTO_PILOT && stage.status==1){
+							if(_AUTO_PILOT && stage.status==1){
 							var autoDirection = findAutoDirection(map, beans, this, items);
 							if(autoDirection!==null){
 								this.control = {orientation:autoDirection};

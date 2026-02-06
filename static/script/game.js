@@ -338,8 +338,7 @@ function Game(id,params){
             gradient.addColorStop(0.45,'#1d3b74');
             gradient.addColorStop(0.75,'#3f6dd6');
             gradient.addColorStop(1,'#5ad4a6');
-            _context.fillStyle = gradient;
-            _context.fillRect(0,0,_.width,_.height);
+            _context.fillStyle = gradient;            _context.fillRect(0,0,_.width,_.height);
             f++;
             if(stage.timeout){
                 stage.timeout--;
